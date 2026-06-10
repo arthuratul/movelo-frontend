@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M50 80 L75 40 L100 80 L125 40 L150 80" fill="none" stroke="url(#blueGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <animate attributeName="stroke-dasharray" from="0, 500" to="500, 0" dur="2s" fill="freeze" />
+  </path>
+  <path d="M40 90 L65 50 L90 90 L115 50 L140 90" fill="none" stroke="#374151" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <text x="100" y="150" font-family="sans-serif" font-weight="bold" font-size="28" text-anchor="middle" fill="#111827">MOVELO</text>
+  <text x="100" y="175" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#6B7280" letter-spacing="2">DELIVERY</text>
+</svg>
