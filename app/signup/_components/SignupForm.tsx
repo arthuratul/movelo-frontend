@@ -54,7 +54,7 @@ function validate(f: FormFields): FormErrors {
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/v1`;
 
 export default function SignupForm() {
   const [fields, setFields] = useState<FormFields>({
