@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
-import { login, AuthError } from '@/lib/auth';
+import { login, AuthError, getAccessToken, getRefreshToken } from '@/lib/auth';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -51,6 +51,12 @@ function validate(f: FormFields): FormErrors {
 
 export default function LoginForm() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (getAccessToken() || getRefreshToken()) {
+      router.replace('/dashboard');
+    }
+  }, [router]);
 
   const [fields, setFields]             = useState<FormFields>({ email: '', password: '' });
   const [errors, setErrors]             = useState<FormErrors>({});
