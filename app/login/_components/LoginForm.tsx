@@ -97,7 +97,7 @@ export default function LoginForm() {
 
     try {
       await login(fields.email.trim().toLowerCase(), fields.password);
-      router.push('/');
+      router.push('/dashboard');
     } catch (error) {
       if (error instanceof AuthError) {
         if (error.status === 403) {

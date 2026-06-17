@@ -170,6 +170,19 @@ export async function logout(): Promise<void> {
   clearTokens();
 }
 
+export function getAuthUser(): { userId: string; email: string } | null {
+  const token = getAccessToken();
+  if (!token) return null;
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(b64)) as { sub?: string; email?: string };
+    if (!payload.sub || !payload.email) return null;
+    return { userId: payload.sub, email: payload.email };
+  } catch {
+    return null;
+  }
+}
+
 export async function getValidAccessToken(): Promise<string | null> {
   if (!isAccessTokenExpired()) return getAccessToken();
 
