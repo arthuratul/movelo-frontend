@@ -1,4 +1,6 @@
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/v1`;
+const API_URL       = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/v1`;
+const CLIENT_ID     = process.env.NEXT_PUBLIC_OAUTH_CLIENT_ID     ?? '';
+const CLIENT_SECRET = process.env.NEXT_PUBLIC_OAUTH_CLIENT_SECRET ?? '';
 
 // ── Token storage ─────────────────────────────────────────────────────────────
 
@@ -89,6 +91,8 @@ async function apiAuthorize(
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
+      client_id:             CLIENT_ID,
+      client_secret:         CLIENT_SECRET,
       email,
       password,
       code_challenge:        codeChallenge,
@@ -116,6 +120,8 @@ async function apiExchangeCode(
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
+      client_id:     CLIENT_ID,
+      client_secret: CLIENT_SECRET,
       grant_type:    'authorization_code',
       code,
       code_verifier: codeVerifier,
@@ -127,11 +133,12 @@ async function apiExchangeCode(
 }
 
 export async function apiRefreshToken(refreshToken: string): Promise<AuthTokenResponse> {
-  const res = await fetch(`${API_URL}/auth/token`, {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
-      grant_type:    'refresh_token',
+      client_id:     CLIENT_ID,
+      client_secret: CLIENT_SECRET,
       refresh_token: refreshToken,
     }),
   });
