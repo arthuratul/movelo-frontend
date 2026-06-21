@@ -224,3 +224,33 @@ export async function getValidAccessToken(): Promise<string | null> {
     return null;
   }
 }
+
+export async function loginWithGoogle(): Promise<void> {
+  const codeVerifier  = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  sessionStorage.setItem('pkce_code_verifier', codeVerifier);
+
+  const params = new URLSearchParams({
+    client_id:             CLIENT_ID,
+    redirect_uri:          REDIRECT_URI,
+    code_challenge:        codeChallenge,
+    code_challenge_method: 'S256',
+  });
+
+  window.location.href = `${API_URL}/auth/google?${params.toString()}`;
+}
+
+export async function exchangeCodeFromCallback(code: string): Promise<void> {
+  const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+  if (!codeVerifier) throw new AuthError('Missing code verifier', 400);
+
+  sessionStorage.removeItem('pkce_code_verifier');
+
+  const tokens = await apiExchangeCode(code, codeVerifier);
+  saveTokens({
+    accessToken:  tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiresAt:    Date.now() + tokens.expires_in * 1000,
+  });
+}

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
-import { login, AuthError, getAccessToken, getRefreshToken } from '@/lib/auth';
+import { login, loginWithGoogle, AuthError, getAccessToken, getRefreshToken } from '@/lib/auth';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -58,11 +58,22 @@ export default function LoginForm() {
     }
   }, [router]);
 
-  const [fields, setFields]             = useState<FormFields>({ email: '', password: '' });
-  const [errors, setErrors]             = useState<FormErrors>({});
-  const [touched, setTouched]           = useState<Touched>({});
-  const [isLoading, setIsLoading]       = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [fields, setFields]               = useState<FormFields>({ email: '', password: '' });
+  const [errors, setErrors]               = useState<FormErrors>({});
+  const [touched, setTouched]             = useState<Touched>({});
+  const [isLoading, setIsLoading]         = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword]   = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch {
+      setErrors({ general: 'Unable to start Google sign-in. Please try again.' });
+      setIsGoogleLoading(false);
+    }
+  };
 
   /* Live validation once a field has been interacted with */
   const handleChange = (field: keyof FormFields, value: string) => {
@@ -124,6 +135,28 @@ export default function LoginForm() {
   /* ---------------------------------------------------------------- */
 
   return (
+    <>
+      {/* Continue with Google */}
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        disabled={isLoading || isGoogleLoading}
+        className="btn btn-outline btn-full gap-2.5"
+      >
+        {isGoogleLoading
+          ? <Loader2 className="w-4 h-4 animate-spin" />
+          : <GoogleIcon />
+        }
+        {isGoogleLoading ? 'Redirecting…' : 'Continue with Google'}
+      </button>
+
+      {/* Divider */}
+      <div className="relative flex items-center my-5">
+        <div className="flex-1 border-t border-border" />
+        <span className="mx-3 text-xs text-neutral-400 font-medium">or</span>
+        <div className="flex-1 border-t border-border" />
+      </div>
+
     <form onSubmit={handleSubmit} noValidate>
 
       {/* General / API error banner */}
@@ -154,7 +187,7 @@ export default function LoginForm() {
           value={fields.email}
           onChange={e => handleChange('email', e.target.value)}
           onBlur={() => handleBlur('email')}
-          disabled={isLoading}
+          disabled={isLoading || isGoogleLoading}
           aria-invalid={!!err('email')}
           aria-describedby={err('email') ? 'email-error' : undefined}
           className={`input ${err('email') ? 'input-error' : ''}`}
@@ -192,7 +225,7 @@ export default function LoginForm() {
             value={fields.password}
             onChange={e => handleChange('password', e.target.value)}
             onBlur={() => handleBlur('password')}
-            disabled={isLoading}
+            disabled={isLoading || isGoogleLoading}
             aria-invalid={!!err('password')}
             aria-describedby={err('password') ? 'password-error' : undefined}
             className={`input pr-12 ${err('password') ? 'input-error' : ''}`}
@@ -221,7 +254,7 @@ export default function LoginForm() {
       {/* Submit */}
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || isGoogleLoading}
         className="btn btn-primary btn-full"
       >
         {isLoading ? (
@@ -235,5 +268,17 @@ export default function LoginForm() {
       </button>
 
     </form>
+    </>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    </svg>
   );
 }
