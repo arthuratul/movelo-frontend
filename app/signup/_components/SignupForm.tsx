@@ -13,6 +13,7 @@ interface FormFields {
   lastName: string;
   email: string;
   password: string;
+  confirmPassword: string;
 }
 
 interface FormErrors {
@@ -20,6 +21,7 @@ interface FormErrors {
   lastName?: string;
   email?: string;
   password?: string;
+  confirmPassword?: string;
   general?: string;
 }
 
@@ -47,6 +49,12 @@ function validate(f: FormFields): FormErrors {
     e.password = 'Password must be at least 8 characters';
   }
 
+  if (!f.confirmPassword) {
+    e.confirmPassword = 'Please confirm your password';
+  } else if (f.confirmPassword !== f.password) {
+    e.confirmPassword = 'Passwords do not match';
+  }
+
   return e;
 }
 
@@ -58,22 +66,28 @@ const API_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/a
 
 export default function SignupForm() {
   const [fields, setFields] = useState<FormFields>({
-    firstName: '', lastName: '', email: '', password: '',
+    firstName: '', lastName: '', email: '', password: '', confirmPassword: '',
   });
   const [errors, setErrors]   = useState<FormErrors>({});
   const [touched, setTouched] = useState<Touched>({});
   const [isLoading, setIsLoading]   = useState(false);
   const [isSuccess, setIsSuccess]   = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   /* Live validation once a field has been interacted with */
   const handleChange = (field: keyof FormFields, value: string) => {
     const updated = { ...fields, [field]: value };
     setFields(updated);
-    if (touched[field]) {
-      const next = validate(updated);
-      setErrors(prev => ({ ...prev, [field]: next[field], general: prev.general }));
-    }
+    const next = validate(updated);
+    setErrors(prev => {
+      const patches: Partial<FormErrors> = { general: prev.general };
+      if (touched[field]) patches[field] = next[field];
+      // re-validate confirmPassword when password changes (and vice versa)
+      if (field === 'password' && touched.confirmPassword) patches.confirmPassword = next.confirmPassword;
+      if (field === 'confirmPassword' && touched.password) patches.password = next.password;
+      return { ...prev, ...patches };
+    });
   };
 
   const handleBlur = (field: keyof FormFields) => {
@@ -93,7 +107,7 @@ export default function SignupForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const allTouched: Touched = { firstName: true, lastName: true, email: true, password: true };
+    const allTouched: Touched = { firstName: true, lastName: true, email: true, password: true, confirmPassword: true };
     setTouched(allTouched);
 
     const validationErrors = validate(fields);
@@ -108,10 +122,11 @@ export default function SignupForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: fields.firstName.trim(),
-          lastName:  fields.lastName.trim(),
-          email:     fields.email.trim().toLowerCase(),
-          password:  fields.password,
+          firstName:       fields.firstName.trim(),
+          lastName:        fields.lastName.trim(),
+          email:           fields.email.trim().toLowerCase(),
+          password:        fields.password,
+          confirmPassword: fields.confirmPassword,
         }),
       });
 
@@ -270,7 +285,7 @@ export default function SignupForm() {
       </div>
 
       {/* Password */}
-      <div className="mb-6">
+      <div className="mb-4">
         <label
           htmlFor="password"
           className="block text-sm font-medium text-neutral-700 mb-1.5"
@@ -308,6 +323,46 @@ export default function SignupForm() {
         >
           {err('password') ?? 'Min. 8 characters'}
         </p>
+      </div>
+
+      {/* Confirm Password */}
+      <div className="mb-6">
+        <label
+          htmlFor="confirmPassword"
+          className="block text-sm font-medium text-neutral-700 mb-1.5"
+        >
+          Confirm password
+        </label>
+        <div className="relative">
+          <input
+            id="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+            value={fields.confirmPassword}
+            onChange={e => handleChange('confirmPassword', e.target.value)}
+            onBlur={() => handleBlur('confirmPassword')}
+            disabled={isLoading}
+            aria-invalid={!!err('confirmPassword')}
+            aria-describedby={err('confirmPassword') ? 'confirmPassword-error' : undefined}
+            className={`input pr-12 ${err('confirmPassword') ? 'input-error' : ''}`}
+          />
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+            onClick={() => setShowConfirmPassword(v => !v)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2
+                       text-neutral-400 hover:text-neutral-600 transition-colors p-0.5"
+          >
+            {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+          </button>
+        </div>
+        {err('confirmPassword') && (
+          <p id="confirmPassword-error" className="mt-1.5 text-xs text-error">
+            {err('confirmPassword')}
+          </p>
+        )}
       </div>
 
       {/* Submit */}
