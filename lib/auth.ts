@@ -1,4 +1,6 @@
-const API_URL      = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/v1`;
+const BASE_URL     = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL      = `${BASE_URL}/api/v1`;
+const AUTH_URL     = `${BASE_URL}/auth`;
 const CLIENT_ID    = process.env.NEXT_PUBLIC_OAUTH_CLIENT_ID ?? '';
 const REDIRECT_URI = process.env.NEXT_PUBLIC_OAUTH_REDIRECT_URI ?? 'http://localhost:3000/callback';
 
@@ -82,57 +84,11 @@ interface AuthTokenResponse {
   expires_in:    number;
 }
 
-// Submits credentials to the PKCE authorize/login endpoint.
-// Returns the authorization code extracted from the redirect_to URL.
-async function apiAuthorizeLogin(
-  email:         string,
-  password:      string,
-  codeChallenge: string,
-): Promise<string> {
-  const res = await fetch(`${API_URL}/auth/authorize/login`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      client_id:             CLIENT_ID,
-      email,
-      password,
-      redirect_uri:          REDIRECT_URI,
-      code_challenge:        codeChallenge,
-      code_challenge_method: 'S256',
-    }),
-  });
-
-  if (res.ok) {
-    const data = await res.json() as { redirect_to: string };
-    const code = new URL(data.redirect_to).searchParams.get('code');
-    if (!code) throw new AuthError('Authorization failed: no code returned', 500);
-    return code;
-  }
-
-  const body = await res.json().catch(() => ({})) as {
-    message?: string | string[] | Array<{ property: string; constraints: Record<string, string> }>;
-  };
-
-  // NestJS validation guard errors: 422 with structured message array
-  if (res.status === 422 && Array.isArray(body.message)) {
-    const first = body.message[0] as { constraints?: Record<string, string> };
-    const constraint = first?.constraints ? Object.values(first.constraints)[0] : undefined;
-    if (constraint === 'Email or password is incorrect') {
-      throw new AuthError('Invalid email or password', 401);
-    }
-    throw new AuthError(constraint ?? 'Something went wrong. Please try again.', 422);
-  }
-
-  if (res.status === 403) throw new AuthError('Please verify your email address before signing in', 403);
-  const msg = Array.isArray(body.message) ? (body.message as string[])[0] : (body.message as string | undefined);
-  throw new AuthError(msg ?? 'Something went wrong. Please try again.', res.status);
-}
-
 async function apiExchangeCode(
   code:         string,
   codeVerifier: string,
 ): Promise<AuthTokenResponse> {
-  const res = await fetch(`${API_URL}/auth/token`, {
+  const res = await fetch(`${AUTH_URL}/token`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
@@ -149,7 +105,7 @@ async function apiExchangeCode(
 }
 
 export async function apiRefreshToken(refreshToken: string): Promise<AuthTokenResponse> {
-  const res = await fetch(`${API_URL}/auth/refresh`, {
+  const res = await fetch(`${AUTH_URL}/refresh`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
@@ -163,7 +119,7 @@ export async function apiRefreshToken(refreshToken: string): Promise<AuthTokenRe
 }
 
 async function apiLogout(refreshToken: string): Promise<void> {
-  await fetch(`${API_URL}/auth/logout`, {
+  await fetch(`${AUTH_URL}/logout`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ refresh_token: refreshToken }),
@@ -172,18 +128,21 @@ async function apiLogout(refreshToken: string): Promise<void> {
 
 // ── High-level helpers ────────────────────────────────────────────────────────
 
-export async function login(email: string, password: string): Promise<void> {
+export async function initiateLogin(): Promise<void> {
   const codeVerifier  = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-  const code   = await apiAuthorizeLogin(email, password, codeChallenge);
-  const tokens = await apiExchangeCode(code, codeVerifier);
+  sessionStorage.setItem('pkce_code_verifier', codeVerifier);
 
-  saveTokens({
-    accessToken:  tokens.access_token,
-    refreshToken: tokens.refresh_token,
-    expiresAt:    Date.now() + tokens.expires_in * 1000,
+  const params = new URLSearchParams({
+    response_type:         'code',
+    client_id:             CLIENT_ID,
+    redirect_uri:          REDIRECT_URI,
+    code_challenge:        codeChallenge,
+    code_challenge_method: 'S256',
   });
+
+  window.location.href = `${AUTH_URL}/authorize?${params.toString()}`;
 }
 
 export async function logout(): Promise<void> {
@@ -223,22 +182,6 @@ export async function getValidAccessToken(): Promise<string | null> {
     clearTokens();
     return null;
   }
-}
-
-export async function loginWithGoogle(): Promise<void> {
-  const codeVerifier  = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-  sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-
-  const params = new URLSearchParams({
-    client_id:             CLIENT_ID,
-    redirect_uri:          REDIRECT_URI,
-    code_challenge:        codeChallenge,
-    code_challenge_method: 'S256',
-  });
-
-  window.location.href = `${API_URL}/auth/google?${params.toString()}`;
 }
 
 export async function exchangeCodeFromCallback(code: string): Promise<void> {

@@ -21,8 +21,8 @@ export default function CallbackHandler() {
 
     if (oauthError) {
       setError(oauthError === 'access_denied'
-        ? 'You cancelled the Google sign-in.'
-        : 'Google sign-in failed. Please try again.');
+        ? 'Sign-in was cancelled.'
+        : 'Sign-in failed. Please try again.');
       return;
     }
 
