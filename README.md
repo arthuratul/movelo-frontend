@@ -27,19 +27,7 @@ Frontend for the Movelo delivery platform — built with Next.js 16, React 19, a
 
 ## Environment Variables
 
-Create a `.env.local` file in the project root:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_OAUTH_CLIENT_ID=your_oauth_client_id
-NEXT_PUBLIC_OAUTH_REDIRECT_URI=http://localhost:3000/callback
-```
-
-| Variable | Description | Default |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | Base URL of the Movelo backend | `http://localhost:8000` |
-| `NEXT_PUBLIC_OAUTH_CLIENT_ID` | OAuth2 client ID registered on the backend | — |
-| `NEXT_PUBLIC_OAUTH_REDIRECT_URI` | Redirect URI registered on the backend | `http://localhost:3000/callback` |
+Create a `.env.local` file in the project root.
 
 ---
 
@@ -96,28 +84,21 @@ movelo-frontend/
 
 ## Authentication
 
-Auth uses **OAuth2 Authorization Code flow with PKCE** against the Movelo backend.
+Auth uses **OAuth2 Authorization Code flow with PKCE** against the Movelo backend. The frontend never handles credentials — the backend auth server owns the login UI (email/password and Google OAuth).
 
-### Email / password login
+### Login flow
 
-1. `lib/auth.ts → login()` generates a PKCE code verifier + challenge.
-2. Calls `POST /api/v1/auth/authorize/login` with credentials and the code challenge.
-3. Receives an authorization code and exchanges it for tokens via `POST /api/v1/auth/token`.
+1. `initiateLogin()` generates a PKCE code verifier + challenge, stores the verifier in `sessionStorage`, and redirects to `GET /auth/authorize` on the backend.
+2. The backend auth server handles login (email/password or Google OAuth) and redirects back to `/callback?code=...`.
+3. `exchangeCodeFromCallback(code)` reads the verifier from `sessionStorage` and exchanges the code for tokens via `POST /auth/token`.
 4. Tokens are persisted in `localStorage`. Access tokens are silently refreshed 30 seconds before expiry.
-
-### Google OAuth login
-
-1. `loginWithGoogle()` stores the code verifier in `sessionStorage` and redirects to `GET /api/v1/auth/google`.
-2. The backend redirects back to `/callback?code=...`.
-3. `CallbackHandler` reads the code verifier from `sessionStorage` and completes the token exchange.
 
 ### Token helpers (`lib/auth.ts`)
 
 | Export | Purpose |
 |---|---|
-| `login(email, password)` | Full PKCE login flow |
-| `loginWithGoogle()` | Redirect to Google OAuth |
-| `exchangeCodeFromCallback(code)` | Complete Google OAuth after redirect |
+| `initiateLogin()` | Generate PKCE params and redirect to backend auth server |
+| `exchangeCodeFromCallback(code)` | Complete token exchange after redirect |
 | `logout()` | Revoke refresh token, clear storage |
 | `getValidAccessToken()` | Return a valid access token, refreshing if needed |
 | `getAuthUser()` | Decode JWT and return `{ userId, email }` |
