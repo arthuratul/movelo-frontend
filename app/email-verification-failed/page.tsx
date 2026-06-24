@@ -28,11 +28,11 @@ export default function EmailVerificationFailedPage() {
             Link expired or invalid
           </h1>
           <p className="text-body-sm text-neutral-500 mb-7">
-            This verification link has expired or already been used. Sign up again to get a fresh link.
+            This verification link has expired or already been used. Please sign up again to get a fresh link.
           </p>
 
-          <Link href="/signup" className="btn btn-primary btn-full">
-            Back to sign up
+          <Link href="/login" className="btn btn-primary btn-full">
+            Sign in
           </Link>
 
           <p className="text-caption text-neutral-400 mt-4">
