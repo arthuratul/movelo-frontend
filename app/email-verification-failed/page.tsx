@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { XCircle } from 'lucide-react';
 
+const SIGNUP_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/auth/signup`;
+
 export const metadata: Metadata = {
   title: 'Verification Failed',
   description: 'We could not verify your email address.',
@@ -31,9 +33,9 @@ export default function EmailVerificationFailedPage() {
             This verification link has expired or already been used. Please sign up again to get a fresh link.
           </p>
 
-          <Link href="/login" className="btn btn-primary btn-full">
-            Sign in
-          </Link>
+          <a href={SIGNUP_URL} className="btn btn-primary btn-full">
+            Sign up
+          </a>
 
           <p className="text-caption text-neutral-400 mt-4">
             Already verified?{' '}
